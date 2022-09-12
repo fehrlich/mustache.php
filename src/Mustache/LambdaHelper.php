@@ -73,4 +73,15 @@ class Mustache_LambdaHelper
     {
         return new self($this->mustache, $this->context, $delims);
     }
+    public function getContext()
+    {
+        return $this->context;
+    }
+    
+    public function getVar($string, $val)
+    {
+        return $this->mustache
+            ->loadLambda((string) $string)
+            ->resolveValue($val, $this->context);
+    }
 }

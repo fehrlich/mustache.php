@@ -36,6 +36,7 @@ class Mustache_Tokenizer
     const T_PRAGMA       = '%';
     const T_BLOCK_VAR    = '$';
     const T_BLOCK_ARG    = '$arg';
+    const T_ARG_SPLIT       = ' ';
 
     // Valid token types
     private static $tagTypes = array(
@@ -82,6 +83,7 @@ class Mustache_Tokenizer
     const NODES   = 'nodes';
     const VALUE   = 'value';
     const FILTERS = 'filters';
+    const ARGS  = 'args';
 
     private $state;
     private $tagType;
@@ -97,6 +99,7 @@ class Mustache_Tokenizer
     private $ctag;
     private $ctagChar;
     private $ctagLen;
+    private $args;
 
     /**
      * Scan and tokenize template source.
@@ -182,6 +185,13 @@ class Mustache_Tokenizer
                     $char = $text[$i];
                     // Test whether it's time to change tags.
                     if ($char === $this->ctagChar && substr($text, $i, $this->ctagLen) === $this->ctag) {
+                        $name = trim($this->buffer);
+                        $args = array();
+                        if(strpos($name, self::T_ARG_SPLIT)){
+                            $args = explode(self::T_ARG_SPLIT,$name);
+                            $name = $args[0];
+                            array_shift($args);
+                        }
                         $token = array(
                             self::TYPE  => $this->tagType,
                             self::NAME  => trim($this->buffer),
@@ -189,6 +199,7 @@ class Mustache_Tokenizer
                             self::CTAG  => $this->ctag,
                             self::LINE  => $this->line,
                             self::INDEX => ($this->tagType === self::T_END_SECTION) ? $this->seenTag - $this->otagLen : $i + $this->ctagLen,
+                            self::ARGS => $args,
                         );
 
                         if ($this->tagType === self::T_UNESCAPED) {

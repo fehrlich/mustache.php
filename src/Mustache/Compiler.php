@@ -101,7 +101,8 @@ class Mustache_Compiler
                         $node[Mustache_Tokenizer::END],
                         $node[Mustache_Tokenizer::OTAG],
                         $node[Mustache_Tokenizer::CTAG],
-                        $level
+                        $level,
+                        $node[Mustache_Tokenizer::ARGS]
                     );
                     break;
 
@@ -189,7 +190,7 @@ class Mustache_Compiler
         {
             private $lambdaHelper;%s
 
-            public function renderInternal(Mustache_Context $context, $indent = \'\')
+            public function renderInternal(Mustache_Context $context, $indent = \'\', $args = array())
             {
                 $this->lambdaHelper = new Mustache_LambdaHelper($this->mustache, $context);
                 $buffer = \'\';
@@ -205,7 +206,7 @@ class Mustache_Compiler
 
         class %s extends Mustache_Template
         {%s
-            public function renderInternal(Mustache_Context $context, $indent = \'\')
+            public function renderInternal(Mustache_Context $context, $indent = \'\', $args = array())
             {
                 $buffer = \'\';
         %s
@@ -323,23 +324,23 @@ class Mustache_Compiler
 
     const SECTION_CALL = '
         $value = $context->%s(%s);%s
-        $buffer .= $this->section%s($context, $indent, $value);
+        $buffer .= $this->section%s($context, $indent, $value, $args);
     ';
 
     const SECTION = '
-        private function section%s(Mustache_Context $context, $indent, $value)
+        private function section%s(Mustache_Context $context, $indent, $value, $args)
         {
             $buffer = \'\';
 
             if (%s) {
                 $source = %s;
-                $result = (string) call_user_func($value, $source, %s);
+                $result = (string) call_user_func($value, $source, %s, $args);
                 if (strpos($result, \'{{\') === false) {
                     $buffer .= $result;
                 } else {
                     $buffer .= $this->mustache
                         ->loadLambda($result%s)
-                        ->renderInternal($context);
+                        ->renderInternal($context, $indent, $args);
                 }
             } elseif (!empty($value)) {
                 $values = $this->isIterable($value) ? $value : array($value);
@@ -368,7 +369,7 @@ class Mustache_Compiler
      *
      * @return string Generated section PHP source code
      */
-    private function section($nodes, $id, $filters, $start, $end, $otag, $ctag, $level)
+    private function section($nodes, $id, $filters, $start, $end, $otag, $ctag, $level, $args = [])
     {
         $source   = var_export(substr($this->source, $start, $end - $start), true);
         $callable = $this->getCallable();
@@ -391,8 +392,9 @@ class Mustache_Compiler
         $method  = $this->getFindMethod($id);
         $id      = var_export($id, true);
         $filters = $this->getFilters($filters, $level);
+        $pre = count($args) > 0 ? '$args = array("'.implode('","', $args).'");' : '';
 
-        return sprintf($this->prepare(self::SECTION_CALL, $level), $method, $id, $filters, $key);
+        return sprintf($this->prepare($pre.self::SECTION_CALL, $level), $method, $id, $filters, $key);
     }
 
     const INVERTED_SECTION = '
@@ -448,7 +450,7 @@ class Mustache_Compiler
     const PARTIAL_INDENT = ', $indent . %s';
     const PARTIAL = '
         if ($partial = $this->mustache->loadPartial(%s)) {
-            $buffer .= $partial->renderInternal($context%s);
+            $buffer .= $partial->renderInternal($context%s, \'\', $args);
         }
     ';
 

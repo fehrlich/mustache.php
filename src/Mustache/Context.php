@@ -126,9 +126,16 @@ class Mustache_Context
      */
     public function findDot($id)
     {
+        $level = 0;
+        $newStack = $this->stack;
+        while(substr($id, 0, 3) == '../'){
+            $level++;
+            array_splice($newStack, count($newStack)-1,1);
+            $id = substr($id, 3);
+        }
         $chunks = explode('.', $id);
         $first  = array_shift($chunks);
-        $value  = $this->findVariableInStack($first, $this->stack);
+        $value  = $this->findVariableInStack($first, $newStack);
 
         foreach ($chunks as $chunk) {
             if ($value === '') {
@@ -207,6 +214,14 @@ class Mustache_Context
      */
     private function findVariableInStack($id, array $stack)
     {
+        $args = false;
+        if(strpos($id, ' ')){
+             $args = explode(' ', $id);
+             $id = array_shift($args); 
+        }
+        if($id == '.'){
+            return $stack[count($stack)-1];
+        }
         for ($i = count($stack) - 1; $i >= 0; $i--) {
             $frame = &$stack[$i];
 
@@ -216,7 +231,7 @@ class Mustache_Context
                         // Note that is_callable() *will not work here*
                         // See https://github.com/bobthecow/mustache.php/wiki/Magic-Methods
                         if (method_exists($frame, $id)) {
-                            return $frame->$id();
+                            return call_user_func_array(array($frame, $id), $args ? $args: []);
                         }
 
                         if (isset($frame->$id)) {
