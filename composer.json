@@ -5,6 +5,10 @@
     "homepage": "https://github.com/fehrlich/mustache.php/",
     "type": "library",
     "license": "MIT",
+    "authors": [{
+        "name": "Franz Ehrlich",
+        "email": "franz.ehrlich@googlemail.com"
+    }],
     "require": {
         "php": ">=5.2.4"
     },
