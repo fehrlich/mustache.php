@@ -254,4 +254,8 @@ class Mustache_Context
 
         return '';
     }
+
+    public function getStack(){
+        return $this->stack;
+    }
 }
